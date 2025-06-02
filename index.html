@@ -3,17 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <title>Portfolio de Ethan Nicolas</title>
+  <style>
+    iframe {
+      width: 100%;
+      max-width: 800px;
+      height: 400px;
+      border: none;
+    }
+
+    body {
+      font-family: sans-serif;
+      max-width: 1000px;
+      margin: auto;
+      padding: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      iframe {
+        max-width: 100%;
+        height: 300px;
+      }
+    }
+  </style>
 </head>
 <body>
 
   <header>
     <h1>Bienvenue sur le portfolio de Ethan Nicolas</h1>
-    <p>Étudiant en ingénierie informatique, passionné par le développement logiciel, les technologies web et les systèmes distribués.</p>
+    <p>Étudiant en ingénierie informatique, passionné par le développement logiciel, les technologies web et l'administration système.</p>
   </header>
 
   <section>
     <h2>À propos</h2>
-    <p>Je suis actuellement étudiant à Sup Galilée. Ce portfolio présente mes différents projets personnels et universitaires. Vous trouverez également des articles que j’ai rédigés autour des technologies que j’utilise.</p>
+    <p>Je suis actuellement étudiant à Sup Galilée en M1. Ce portfolio présente mes différents projets personnels et universitaires. Vous trouverez également des articles que j’ai rédigés autour des technologies que j’utilise.</p>
   </section>
 
   <section>
@@ -21,15 +43,15 @@
 
     <h3>Atlas – Librairie de films</h3>
     <p>Atlas est une application web qui permet de découvrir des films et séries via l’API TMDB.</p>
-    <iframe src="https://portfolio.ethancls.com/projets/atlas" width="100%" height="400" title="Atlas Preview"></iframe>
+    <iframe src="https://atlas.ethancls.com" title="Atlas Preview"></iframe>
 
     <h3>Jarvys – Plateforme d'exercices</h3>
-    <p>Jarvys est une plateforme éducative permettant aux étudiants de rendre leurs exercices de code avec un système d’administration.</p>
-    <iframe src="https://portfolio.ethancls.com/projets/jarvys" width="100%" height="400" title="Jarvys Preview"></iframe>
+    <p>Jarvys est une plateforme éducative permettant aux étudiants de rendre leurs exercices de Python avec un système d’administration.</p>
+    <iframe src="https://jarvys.ethancls.com" title="Jarvys Preview"></iframe>
 
-    <h3>Overseerr – Interface pour le média center</h3>
-    <p>Interface web pour gérer les demandes de films/séries avec intégration de Radarr et Sonarr.</p>
-    <iframe src="https://portfolio.ethancls.com/projets/overseerr" width="100%" height="400" title="Overseerr Preview"></iframe>
+    <h3>Portfolio</h3>
+    <p>Portfolio créé avec un template once-ui utilisant Next.js</p>
+    <iframe src="https://portfolio.ethancls.com" title="Portfolio Preview"></iframe>
   </section>
 
   <section>
@@ -37,21 +59,21 @@
     <p>Quelques réflexions et tutoriels que j’ai publiés récemment :</p>
 
     <h3>Architecture de réseau maison</h3>
-    <p>Comment j’ai mis en place une infrastructure en autohébergement avec Docker, Traefik, et Cloudflare Tunnel.</p>
-    <iframe src="https://portfolio.ethancls.com/articles/network" width="100%" height="300" title="Article Réseau"></iframe>
+    <p>Comment j’ai mis en place une infrastructure en autohébergement avec Docker et Cloudflare Tunnel.</p>
+    <iframe src="https://portfolio.ethancls.com/blog/tunnel-cloudflare-vers-nas" height="300" title="Article Réseau"></iframe>
 
-    <h3>Docker et sécurité</h3>
-    <p>Un article sur la sécurisation d’un stack Docker en production, avec bonnes pratiques et exemples concrets.</p>
-    <iframe src="https://portfolio.ethancls.com/articles/docker" width="100%" height="300" title="Article Docker"></iframe>
+    <h3>Docker et Docker Compose</h3>
+    <p>Un article sur comment installer docker et y déployer ses premiers services via Dockerfile x Docker Compose.</p>
+    <iframe src="https://portfolio.ethancls.com/blog/docker-docker-compose-guide" height="300" title="Article Docker"></iframe>
   </section>
 
   <section>
     <h2>Me contacter</h2>
     <p>Vous pouvez me retrouver sur :</p>
     <ul>
-      <li><a href="https://github.com/ethan">GitHub</a></li>
-      <li><a href="https://linkedin.com/in/ethan">LinkedIn</a></li>
-      <li><a href="mailto:contact@ethancls.fr">contact@ethancls.fr</a></li>
+      <li><a href="https://github.com/ethancls">GitHub</a></li>
+      <li><a href="https://linkedin.com/in/ethannicolas">Linkedin</a></li>
+      <li><a href="mailto:contact@ethancls.com">contact@ethancls.com</a></li>
     </ul>
   </section>
 
