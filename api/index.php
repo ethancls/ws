@@ -26,56 +26,59 @@ class LanguageManager
 
     private function determineLanguage()
     {
-        // 1. Paramètre GET
+        // 1. Paramètre GET explicite
         if (isset($_GET['lang']) && in_array($_GET['lang'], $this->availableLanguages)) {
             $this->currentLanguage = $_GET['lang'];
             $_SESSION['language'] = $this->currentLanguage;
             return;
         }
 
-        // 2. Paramètre POST
-        if (isset($_POST['lang']) && in_array($_POST['lang'], $this->availableLanguages)) {
-            $this->currentLanguage = $_POST['lang'];
-            $_SESSION['language'] = $this->currentLanguage;
-            return;
-        }
-
-        // 3. Variable de session
+        // 2. Session existante
         if (isset($_SESSION['language']) && in_array($_SESSION['language'], $this->availableLanguages)) {
             $this->currentLanguage = $_SESSION['language'];
             return;
         }
 
-        // 4. Accept-Language header
+        // 3. Détection via Accept-Language avec votre fonction
         if (isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
-            $acceptedLanguages = $this->parseAcceptLanguage($_SERVER['HTTP_ACCEPT_LANGUAGE']);
-            foreach ($acceptedLanguages as $lang) {
-                if (in_array($lang, $this->availableLanguages)) {
-                    $this->currentLanguage = $lang;
-                    $_SESSION['language'] = $this->currentLanguage;
-                    return;
-                }
+            $preferredLangs = $this->prefered_language($this->availableLanguages, $_SERVER['HTTP_ACCEPT_LANGUAGE']);
+            if (!empty($preferredLangs)) {
+                $this->currentLanguage = key($preferredLangs); // Première langue détectée
+                $_SESSION['language'] = $this->currentLanguage;
+                return;
             }
         }
 
-        // 5. Langue par défaut
+        // 4. Langue par défaut
         $this->currentLanguage = $this->defaultLanguage;
         $_SESSION['language'] = $this->currentLanguage;
     }
 
-    private function parseAcceptLanguage($acceptLanguage)
-    {
-        $languages = [];
-        $parts = explode(',', $acceptLanguage);
+    private function prefered_language(array $available_languages, $http_accept_language) {
+        $available_languages = array_flip($available_languages);
 
-        foreach ($parts as $part) {
-            $part = trim($part);
-            $langParts = explode(';', $part);
-            $lang = strtolower(substr($langParts[0], 0, 2));
-            $languages[] = $lang;
+        $langs = [];
+        preg_match_all('~([\w-]+)(?:[^,\d]+([\d.]+))?~', strtolower($http_accept_language), $matches, PREG_SET_ORDER);
+        foreach($matches as $match) {
+
+            list($a, $b) = explode('-', $match[1]) + array('', '');
+            $value = isset($match[2]) ? (float) $match[2] : 1.0;
+
+            if(isset($available_languages[$match[1]])) {
+                $langs[$match[1]] = $value;
+                continue;
+            }
+
+            if(isset($available_languages[$a])) {
+                $langs[$a] = $value - 0.1;
+            }
         }
-
-        return $languages;
+        
+        if (!empty($langs)) {
+            arsort($langs);
+        }
+        
+        return $langs;
     }
 
     public function getCurrentLanguage()
@@ -116,6 +119,47 @@ class LanguageManager
         return in_array($page, ['home', 'projects', 'contact', 'experiences', 'education']) ? $page : 'home';
     }
 
+    public function getYouTubeUrl($videoId, $lang = null)
+    {
+        $lang = $lang ?: $this->currentLanguage;
+        
+        // Paramètres YouTube pour forcer la langue de l'interface
+        $params = [
+            'hl' => $lang,                    // Host language (langue de l'interface)
+            'cc_lang_pref' => $lang,          // Closed captions language preference
+            'cc_load_policy' => 1,            // Force l'affichage des sous-titres
+            'rel' => 0,                       // Ne pas montrer de vidéos relatives
+            'modestbranding' => 1,            // Branding YouTube minimal
+            'playsinline' => 1,               // Lecture en ligne sur mobile
+            'origin' => urlencode($this->getBaseUrl()), // Origine pour la sécurité
+        ];
+        
+        // Pour l'arabe et les langues RTL, ajouter des paramètres spéciaux
+        if (in_array($lang, ['ar', 'he', 'fa'])) {
+            $params['dir'] = 'rtl';
+        }
+        
+        $queryString = http_build_query($params);
+        return "https://www.youtube.com/embed/{$videoId}?{$queryString}";
+    }
+
+    public function getPageTitle()
+    {
+        $currentPage = $this->getCurrentPage();
+        $baseTitle = $this->getText('home.title');
+        
+        // Titres de pages spécifiques
+        $pageTitles = [
+            'home' => $baseTitle,
+            'projects' => $this->getText('navigation.projects') . ' - ' . $baseTitle,
+            'contact' => $this->getText('navigation.contact') . ' - ' . $baseTitle,
+            'experiences' => $this->getText('navigation.experiences') . ' - ' . $baseTitle,
+            'education' => $this->getText('navigation.education') . ' - ' . $baseTitle
+        ];
+        
+        return $pageTitles[$currentPage] ?? $baseTitle;
+    }
+
     public function generateAlternateLinks()
     {
         $currentPage = $this->getCurrentPage();
@@ -154,48 +198,52 @@ $langData = $lang->getLanguageData();
 <html lang="<?php echo $currentLang; ?>" dir="<?php echo $langData['dir']; ?>">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $lang->getText('home.title'); ?></title>
-    <link rel="icon" href="https://portfolio.ethancls.com/favicon.ico" type="image/x-icon">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title><?php echo htmlspecialchars($lang->getPageTitle()); ?></title>
+    <link rel="icon" href="https://portfolio.ethancls.com/favicon.ico" type="image/x-icon"/>
 
     <!-- SEO Meta Tags -->
-    <meta name="description" content="<?php echo htmlspecialchars($lang->getText('home.subtitle')); ?>">
-    <meta name="author" content="Ethan Nicolas">
-    <meta name="keywords" content="portfolio, développeur, ingénieur informatique, web development, programming">
+    <meta name="description" content="<?php echo htmlspecialchars($lang->getText('home.subtitle')); ?>"/>
+    <meta name="author" content="Ethan Nicolas"/>
+    <meta name="keywords" content="portfolio, développeur, ingénieur informatique, web development, programming"/>
 
-    <!-- Open Graph -->
-    <meta property="og:title" content="<?php echo htmlspecialchars($lang->getText('home.title')); ?>">
-    <meta property="og:description" content="<?php echo htmlspecialchars($lang->getText('home.subtitle')); ?>">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="<?php echo $lang->getBaseUrl() . '?page=' . $currentPage . '&lang=' . $currentLang; ?>">
-    <meta property="og:locale" content="<?php echo $currentLang; ?>">
-    <meta property="og:image" content="<?php echo $lang->getBaseUrl(); ?>/background.jpeg">
-    <meta property="og:image:url" content="<?php echo $lang->getBaseUrl(); ?>/background.jpeg">
-    <meta property="og:image:alt" content="<?php echo htmlspecialchars($lang->getText('home.title')); ?>">
-    <meta property="og:image:secure_url" content="<?php echo $lang->getBaseUrl(); ?>/background.jpeg">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:type" content="image/png">
+    <!-- Open Graph Metadata -->
+    <meta property="og:title" content="<?php echo htmlspecialchars($lang->getPageTitle()); ?>"/>
+    <meta property="og:description" content="<?php echo htmlspecialchars($lang->getText('home.subtitle')); ?>"/>
+    <meta property="og:type" content="website"/>
+    <meta property="og:url" content="<?php echo $lang->getBaseUrl() . '?page=' . $currentPage . '&lang=' . $currentLang; ?>"/>
+    <meta property="og:locale" content="<?php echo $currentLang; ?>"/>
+    <meta property="og:image" content="<?php echo $lang->getBaseUrl(); ?>/background.jpeg"/>
+    <meta property="og:image:url" content="<?php echo $lang->getBaseUrl(); ?>/background.jpeg"/>
+    <meta property="og:image:alt" content="<?php echo htmlspecialchars($lang->getPageTitle()); ?>"/>
+    <meta property="og:image:secure_url" content="<?php echo $lang->getBaseUrl(); ?>/background.jpeg"/>
+    <meta property="og:image:width" content="1200"/>
+    <meta property="og:image:height" content="630"/>
+    <meta property="og:image:type" content="image/png"/>
     <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@somayhka">
-    <meta name="twitter:creator" content="@somayhka">
-    <meta name="twitter:title" content="<?php echo htmlspecialchars($lang->getText('home.title')); ?>">
-    <meta name="twitter:description" content="<?php echo htmlspecialchars($lang->getText('home.subtitle')); ?>">
-    <meta name="twitter:image" content="<?php echo $lang->getBaseUrl(); ?>/background.jpeg">
-    <meta name="twitter:image:alt" content="<?php echo htmlspecialchars($lang->getText('home.title')); ?>">
+    <meta name="twitter:card" content="summary_large_image"/>
+    <meta name="twitter:site" content="@somayhka"/>
+    <meta name="twitter:creator" content="@somayhka"/>
+    <meta name="twitter:title" content="<?php echo htmlspecialchars($lang->getPageTitle()); ?>"/>
+    <meta name="twitter:description" content="<?php echo htmlspecialchars($lang->getText('home.subtitle')); ?>"/>
+    <meta name="twitter:image" content="<?php echo $lang->getBaseUrl(); ?>/background.jpeg"/>
+    <meta name="twitter:image:alt" content="<?php echo htmlspecialchars($lang->getPageTitle()); ?>"/>
 
-    <!-- FontAwesome CDN for icons -->
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-    <!-- External CSS File -->
-    <link rel="stylesheet" href="/style.css">
+    <!-- Fichier CSS -->
+    <link rel="stylesheet" href="/style.css"/>
 
-    <!-- Alternate Language Links -->
+    <!-- SEO | Sitemap & Robots -->
+    <link rel="sitemap" type="application/xml" href="<?php echo $lang->getBaseUrl(); ?>/sitemap.xml"/>
+    <meta name="robots" content="index, follow"/>
+
+    <!-- Liens alternatifs de langues -->
     <?php echo $lang->generateAlternateLinks(); ?>
 
-    <!-- Schema.org structured data -->
+    <!-- Schema Person -->
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -212,9 +260,6 @@ $langData = $lang->getLanguageData();
             "https://instagram.com/ethancls",
         ],
         "email": "contact@ethancls.com",
-        "knowsLanguage": [
-            "fr", "en", "ja", "ru", "pt", "zh", "el", "ar"
-        ]
     }
     </script>
 </head>
@@ -392,18 +437,17 @@ $langData = $lang->getLanguageData();
                     <p class="video-description"><?php echo $lang->getText('home.video_description'); ?></p>
                     <div class="video-container">
                         <?php
-                        // Vidéos multilingues selon la langue
-                        $videoUrls = [
-                            'fr' => 'https://www.youtube.com/embed/dQw4w9WgXcQ?cc_lang_pref=fr&cc_load_policy=1',
-                            'en' => 'https://www.youtube.com/embed/dQw4w9WgXcQ?cc_lang_pref=en&cc_load_policy=1',
-                            'ja' => 'https://www.youtube.com/embed/dQw4w9WgXcQ?cc_lang_pref=ja&cc_load_policy=1'
-                        ];
-                        $videoUrl = isset($videoUrls[$currentLang]) ? $videoUrls[$currentLang] : $videoUrls['fr'];
+                        // ID de la vidéo YouTube
+                        $videoId = 'o8NPllzkFhE';
+                        $videoUrl = $lang->getYouTubeUrl($videoId, $currentLang);
                         ?>
                         <iframe
                             src="<?php echo $videoUrl; ?>"
-                            title="<?php echo $lang->getText('home.video_title'); ?>"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            title="<?php echo htmlspecialchars($lang->getText('home.video_title')); ?>"
+                            lang="<?php echo $currentLang; ?>"
+                            width="560"
+                            height="315"
+                            referrerpolicy="strict-origin-when-cross-origin"
                             allowfullscreen>
                         </iframe>
                     </div>
@@ -687,7 +731,8 @@ $langData = $lang->getLanguageData();
         <p><?php echo $lang->getText('footer.copyright'); ?></p>
     </footer>
 
-    <script>
+    <script type="text/javascript">
+    //<![CDATA[
         // Dark/Light mode toggle
         const themeToggle = document.getElementById('theme-toggle');
         const root = document.documentElement;
@@ -766,6 +811,7 @@ $langData = $lang->getLanguageData();
                 mobileMenu.classList.remove('show');
             }
         });
+    //]]>
     </script>
 </body>
 
